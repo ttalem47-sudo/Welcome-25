@@ -6,7 +6,8 @@
 <style>
 :root{--bg:#0b1730;--ink:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-html,body{height:100%;margin:0;overflow:hidden;background:#050b17;font-family:Tajawal,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;user-select:none}
+body{position:fixed;inset:0;width:100%}
+html,body{height:100%;margin:0;overflow:hidden;max-width:100%;background:#050b17;font-family:Tajawal,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;user-select:none}
 /* ---------- الصفحة الرئيسية (مدمجة) ---------- */
 #home{position:absolute;inset:0;z-index:1;background:#0b1730;color:#fff;visibility:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:right;user-select:text}
 #hbg{position:fixed;inset:0;background:#0b1730 center/cover no-repeat;z-index:0}
@@ -53,7 +54,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#050b17;font-family:Ta
 .c{border-radius:50%;border:5px dashed #7cc8ff;box-sizing:border-box;box-shadow:0 0 24px #3aa7ff,inset 0 0 18px rgba(58,167,255,.5)}
 #c2{border-style:dotted;border-color:#fff}
 .rod{position:absolute;width:4px;border-radius:2px;background:linear-gradient(transparent,#7cc8ff 30%,#7cc8ff 70%,transparent);box-shadow:0 0 14px #3aa7ff}
-#flash{position:absolute;left:50%;top:30%;width:100px;height:100px;margin:-50px;border-radius:50%;background:#0b1730;transform:scale(0);z-index:3;transition:transform 1s ease-in}
+#flash{position:fixed;left:50%;top:30%;pointer-events:none;width:100px;height:100px;margin:-50px;border-radius:50%;background:#0b1730;transform:scale(0);z-index:3;transition:transform 1s ease-in}
 #gl{position:fixed;left:0;top:0;z-index:30;pointer-events:none}
 #fx{position:fixed;inset:0;z-index:35;pointer-events:none}
 .pt{position:absolute;width:6px;height:6px;border-radius:50%;background:#bfe3ff;box-shadow:0 0 8px #3aa7ff}
@@ -332,7 +333,7 @@ async function intro(){
  home.style.visibility='visible';$('#flash').style.top=ly+'px';$('#flash').style.transform='scale(40)';burst(cx,ly,40,200);
  [262,330,392,523].forEach(f=>tn(f,0,1.8,'triangle',.1));
  Object.assign(bot.u,{x:W/2,y:H-110*BS-20,ry:0});B={x:W/2,y:H-110*BS-20,s:.62};tw(bot,{s:.62},600,eb);burst(W/2,B.y,30,110);tn(500,0,.3,'sine',.1,1200);cls('wave',2300);mood('l');await sleep(1000);
- room.remove();$('#flash').style.opacity=0;$('#re').style.display='block';
+ room.remove();$('#flash').style.opacity=0;setTimeout(()=>$('#flash').remove(),50);$('#re').style.display='block';
  mood('h');await sleep(700);mood('n');busy=false;ready=true;
 }
 $('#re').onclick=()=>location.reload();
@@ -345,3 +346,4 @@ document.addEventListener('pointerdown',async e=>{if(busy||!ready||svOpen||e.tar
  busy=false});
 $('#start').addEventListener('pointerdown',intro,{once:true});
 </script></body></html>
+ 
