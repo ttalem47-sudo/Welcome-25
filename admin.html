@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لوحة الأدمن — B25</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#0199E0;--bg:#0b1730;--card:#13264a;--line:#25417a;--red:#e5484d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:#fff;font-family:Tajawal,system-ui,sans-serif;padding:0 0 60px}
+header{position:sticky;top:0;z-index:20;background:rgba(11,23,48,.95);backdrop-filter:blur(8px);padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;border-bottom:1px solid var(--line)}
+header h1{margin:0 0 8px;font-size:19px}
+.tabs{display:flex;gap:6px}
+.tabs button{flex:1;padding:10px 4px;border:0;border-radius:12px;background:var(--card);color:#9fc4ff;font:inherit;font-weight:800;cursor:pointer}
+.tabs button.on{background:var(--blue);color:#fff}
+main{padding:14px;max-width:720px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:16px}
+label{display:block;font-size:13px;color:#9fc4ff;margin:10px 0 4px}
+input,textarea,select{width:100%;padding:11px;border-radius:12px;border:1px solid var(--line);background:#0b1730;color:#fff;font:inherit;font-size:15px}
+textarea{min-height:90px;resize:vertical}
+.btn{border:0;border-radius:12px;padding:10px 14px;font:inherit;font-weight:800;color:#fff;background:var(--blue);cursor:pointer}
+.btn.sm{padding:8px 11px;font-size:13px}
+.btn.gray{background:#2a4380}.btn.red{background:var(--red)}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.row .btn{flex:1}
+.pick{display:flex;gap:8px;align-items:center}
+.th{width:72px;height:54px;border-radius:10px;background:#0b1730 center/cover;border:1px dashed var(--line);flex:none}
+details{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-bottom:12px}
+summary{padding:14px;font-weight:800;cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center}
+summary::after{content:"▾";margin-right:auto;opacity:.6}
+details[open] summary::after{content:"▴"}
+.body{padding:0 14px 14px}
+.blk{background:#0f1f3d;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
+.blk .f{display:none}
+.blk[data-type=text] .f-text,.blk[data-type=image] .f-image,.blk[data-type=location] .f-loc,.blk[data-type=link] .f-loc{display:block}
+.blk[data-type=location] .f-label,.blk[data-type=link] .f-label{display:block}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gi{position:relative;aspect-ratio:1;border-radius:12px;background:#0b1730 center/cover;border:1px solid var(--line);cursor:pointer}
+.gi button{position:absolute;bottom:4px;left:4px}
+.gi.sel{outline:3px solid var(--blue)}
+#modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:flex-end}
+#modal>div{background:var(--bg);width:100%;max-height:80vh;overflow:auto;border-radius:22px 22px 0 0;padding:16px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,80px);background:#1db954;color:#fff;padding:11px 20px;border-radius:30px;font-weight:800;transition:transform .3s;z-index:70}
+#toast.show{transform:translate(-50%,0)}#toast.bad{background:var(--red)}
+.hint{font-size:13px;opacity:.65;margin:4px 0}
+</style></head><body>
+<header><h1>⚙️ لوحة الأدمن</h1>
+<div class="tabs"><button data-t="home" class="on">الرئيسية</button><button data-t="services">الخدمات</button><button data-t="lib">المكتبة</button></div></header>
+<main id="m"></main>
+<div id="modal"><div></div></div><div id="toast"></div>
+<script src="store.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let D=Store.load(),tab='home',open=new Set();
+const th=id=>{const s=Store.img(D,id);return s?`style="background-image:url('${s}')"`:''};
+
+function toast(m,bad){const t=$('#toast');t.textContent=m;t.className='show'+(bad?' bad':'');clearTimeout(toast.h);toast.h=setTimeout(()=>t.className='',1800)}
+function persist(msg='تم الحفظ ✓'){Store.save(D)?toast(msg):toast('تعذر الحفظ',1)}
+
+/* حقل اختيار صورة */
+const picker=(id)=>`<div class="pick" data-id="${esc(id||'')}"><div class="th" ${th(id)}></div><button type="button" class="btn sm gray" data-a="pick">اختر صورة</button><button type="button" class="btn sm gray" data-a="clr">إزالة</button></div>`;
+const val=el=>el.querySelector('.pick')?.dataset.id||null;
+
+function choose(cb){
+  const m=$('#modal');
+  m.firstElementChild.innerHTML=`<h3>اختر صورة من المكتبة</h3>${D.images.length?`<div class="grid">${D.images.map(i=>`<div class="gi" data-id="${i.id}" style="background-image:url('${i.src}')"></div>`).join('')}</div>`:'<p class="hint">المكتبة فاضية — ارفع صور من تبويب «المكتبة» الأول.</p>'}<div class="row"><button class="btn gray" id="cl">إغلاق</button></div>`;
+  m.style.display='flex';
+  m.onclick=e=>{const g=e.target.closest('.gi');if(g){cb(g.dataset.id);m.style.display='none'}else if(e.target===m||e.target.id==='cl')m.style.display='none'};
+}
+
+/* ---------- العرض ---------- */
+function render(){
+  D=Store.load();
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  $('#m').innerHTML=tab==='home'?homeTab():tab==='services'?servicesTab():libTab();
+}
+const homeTab=()=>`
+<div class="card" data-k="home"><h3>خلفية الصفحة الرئيسية</h3>${picker(D.home.bg)}
+<label>سرعة تغيير الصور (بالثواني)</label><input type="number" min="2" max="60" id="iv" value="${+D.home.interval||5}">
+<div class="row"><button class="btn" data-a="saveHome">حفظ</button></div></div>
+<h3 style="margin:18px 4px 10px">صور النافذة الكبيرة (العرض المتغير)</h3>
+${D.slides.map(s=>`<div class="card" data-k="slide" data-id="${s.id}">${picker(s.img)}<label>عنوان يظهر على الصورة (اختياري)</label><input class="cap" value="${esc(s.caption)}"><div class="row"><button class="btn" data-a="saveSlide">حفظ</button><button class="btn red" data-a="delSlide">حذف</button></div></div>`).join('')||'<p class="hint">ما في صور للعرض بعد.</p>'}
+<div class="row"><button class="btn" data-a="addSlide">+ إضافة صورة للعرض</button></div>`;
+
+const blockHtml=b=>`<div class="blk" data-k="blk" data-id="${b.id}" data-type="${b.type}">
+<select data-a="type"><option value="text"${b.type=='text'?' selected':''}>نص</option><option value="image"${b.type=='image'?' selected':''}>صورة</option><option value="location"${b.type=='location'?' selected':''}>موقع</option><option value="link"${b.type=='link'?' selected':''}>رابط</option></select>
+<div class="f f-text"><label>النص</label><textarea class="tx">${esc(b.text)}</textarea></div>
+<div class="f f-image"><label>الصورة</label>${picker(b.img)}</div>
+<div class="f f-label"><label>اسم الزر</label><input class="lb" value="${esc(b.label)}"></div>
+<div class="f f-loc"><label>الرابط أو الموقع (رابط خرائط، أو إحداثيات، أو اسم المكان)</label><input class="ul" dir="ltr" value="${esc(b.url)}"></div>
+<div class="row"><button class="btn sm" data-a="saveBlk">حفظ</button><button class="btn sm red" data-a="delBlk">حذف</button></div></div>`;
+
+const servicesTab=()=>`${D.services.map(s=>`<details data-k="svc" data-id="${s.id}"${open.has(s.id)?' open':''}><summary><span>${esc(s.icon||'✨')}</span><span>${esc(s.title||'خدمة جديدة')}</span></summary><div class="body">
+<label>اسم الخدمة</label><input class="ti" value="${esc(s.title)}">
+<label>أيقونة (إيموجي)</label><input class="ic" value="${esc(s.icon)}" maxlength="4">
+<label>خلفية صفحة الخدمة والمربع</label>${picker(s.bg)}
+<div class="row"><button class="btn" data-a="saveSvc">حفظ الخدمة</button><button class="btn red" data-a="delSvc">حذف الخدمة</button></div>
+<h3 style="margin:18px 0 0;font-size:15px">محتوى الصفحة</h3>
+<div class="bl">${(s.blocks||[]).map(blockHtml).join('')||'<p class="hint">ما في محتوى بعد — أضف أي مزيج من النص والصور والموقع والروابط.</p>'}</div>
+<div class="row"><button class="btn sm gray" data-a="addBlk" data-ty="text">+ نص</button><button class="btn sm gray" data-a="addBlk" data-ty="image">+ صورة</button><button class="btn sm gray" data-a="addBlk" data-ty="location">+ موقع</button><button class="btn sm gray" data-a="addBlk" data-ty="link">+ رابط</button></div>
+</div></details>`).join('')||'<p class="hint">ما في خدمات بعد.</p>'}
+<div class="row"><button class="btn" data-a="addSvc">+ إضافة خدمة</button></div>`;
+
+const libTab=()=>`<div class="card"><h3>رفع صور</h3><input type="file" id="up" accept="image/*" multiple><p class="hint">الصور بتتصغّر تلقائيًا. بعد الرفع تقدر تختارها للخلفيات والعرض والخدمات.</p></div>
+<div class="grid">${D.images.map(i=>`<div class="gi" style="background-image:url('${i.src}')"><button class="btn sm red" data-a="delImg" data-id="${i.id}">حذف</button></div>`).join('')}</div>`;
+
+/* ---------- الأحداث ---------- */
+document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('button');if(b){tab=b.dataset.t;render()}};
+
+$('#m').addEventListener('change',async e=>{
+  if(e.target.id==='up'){
+    let n=0;
+    for(const f of e.target.files){try{D.images.push({id:Store.uid(),src:await Store.compress(f)});n++}catch(x){}}
+    persist(`تم رفع ${n} صورة ✓`);render();
+  }
+  if(e.target.dataset.a==='type'){e.target.closest('.blk').dataset.type=e.target.value}
+});
+
+$('#m').addEventListener('click',e=>{
+  const bt=e.target.closest('[data-a]');if(!bt||bt.tagName==='SELECT')return;
+  const a=bt.dataset.a,box=bt.closest('[data-k]'),id=box?.dataset.id;
+  const svc=()=>D.services.find(x=>x.id==bt.closest('[data-k=svc]')?.dataset.id);
+  if(a==='pick'){const p=bt.closest('.pick');choose(i=>{p.dataset.id=i;p.querySelector('.th').style.backgroundImage=`url('${Store.img(D,i)}')`})}
+  else if(a==='clr'){const p=bt.closest('.pick');p.dataset.id='';p.querySelector('.th').style.backgroundImage=''}
+  else if(a==='saveHome'){D.home.bg=val(box);D.home.interval=Math.min(60,Math.max(2,+$('#iv').value||5));persist()}
+  else if(a==='addSlide'){D.slides.push({id:Store.uid(),img:null,caption:''});persist('تمت الإضافة');render()}
+  else if(a==='saveSlide'){const s=D.slides.find(x=>x.id==id);s.img=val(box);s.caption=box.querySelector('.cap').value;persist()}
+  else if(a==='delSlide'){if(confirm('حذف هذه الصورة من العرض؟')){D.slides=D.slides.filter(x=>x.id!=id);persist('تم الحذف');render()}}
+  else if(a==='addSvc'){const n=Store.uid();D.services.push({id:n,title:'',icon:'✨',bg:null,blocks:[]});open.add(n);persist('تمت الإضافة');render()}
+  else if(a==='saveSvc'){const s=svc();s.title=box.querySelector('.ti').value;s.icon=box.querySelector('.ic').value;s.bg=val(box);persist();const sm=box.querySelector('summary');sm.children[0].textContent=s.icon||'✨';sm.children[1].textContent=s.title||'خدمة جديدة'}
+  else if(a==='delSvc'){if(confirm('حذف الخدمة بكل محتواها؟')){D.services=D.services.filter(x=>x.id!=id);persist('تم الحذف');render()}}
+  else if(a==='addBlk'){const s=svc();const b={id:Store.uid(),type:bt.dataset.ty,text:'',img:null,label:'',url:''};s.blocks.push(b);persist('تمت الإضافة');open.add(s.id);render()}
+  else if(a==='saveBlk'){const s=svc(),b=s.blocks.find(x=>x.id==id);b.type=box.dataset.type;b.text=box.querySelector('.tx').value;b.img=val(box);b.label=box.querySelector('.lb').value;b.url=box.querySelector('.ul').value;persist()}
+  else if(a==='delBlk'){if(confirm('حذف هذا العنصر؟')){const s=svc();s.blocks=s.blocks.filter(x=>x.id!=id);persist('تم الحذف');open.add(s.id);render()}}
+  else if(a==='delImg'){if(confirm('حذف الصورة من المكتبة؟ بتنشال من كل مكان مستخدمة فيه.')){const i=bt.dataset.id;D.images=D.images.filter(x=>x.id!=i);if(D.home.bg==i)D.home.bg=null;D.slides.forEach(s=>{if(s.img==i)s.img=null});D.services.forEach(s=>{if(s.bg==i)s.bg=null;s.blocks.forEach(b=>{if(b.img==i)b.img=null})});persist('تم الحذف');render()}}
+});
+$('#m').addEventListener('toggle',e=>{const d=e.target;if(d.tagName==='DETAILS'){d.open?open.add(d.dataset.id):open.delete(d.dataset.id)}},true);
+Store.gate().then(Store.init).then(render);
+</script></body></html>
